@@ -285,7 +285,17 @@ module Wice
       #   @status.delete(:f)
       # end
 
-      initial_conditions_active_relation = @klass.where(@status[:conditions])
+      if @status[:conditions].is_a?(Hash)
+        affected_fields = @status[:conditions].stringify_keys.keys.uniq
+        initial_conditions = @table_column_matrix.conditions.grep(Hash).reduce(@status[:conditions]) do |all_conditions, condition_hash|
+          matched_conditions = condition_hash.stringify_keys.select{|field, value| affected_fields.include?(field.to_s)}
+          all_conditions.merge(matched_conditions)
+        end
+      else
+        initial_conditions = @status[:conditions]
+      end
+
+      initial_conditions_active_relation = @klass.where(initial_conditions)
 
       @ar_options[:conditions] =
         @table_column_matrix.conditions.reduce(initial_conditions_active_relation) do |active_relation_accu, cond|
